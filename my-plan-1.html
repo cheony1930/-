@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>나의 회복 플랜 🌸</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0a1e;
+    --surface: #1a1130;
+    --card: #221840;
+    --accent1: #c084fc;
+    --accent2: #f0abfc;
+    --accent3: #818cf8;
+    --text: #f1e8ff;
+    --muted: #a78bca;
+    --success: #86efac;
+    --border: rgba(192,132,252,0.2);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 80px; }
+
+  .header {
+    background: linear-gradient(135deg, #2d1b69 0%, #1a1130 100%);
+    padding: 24px 20px 18px; text-align: center;
+    border-bottom: 1px solid var(--border); position: relative; overflow: hidden;
+  }
+  .header::before {
+    content: ''; position: absolute; top: -40px; right: -40px;
+    width: 160px; height: 160px;
+    background: radial-gradient(circle, rgba(192,132,252,0.15) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .header h1 { font-size: 1.3rem; font-weight: 700; color: var(--accent2); }
+  .header-sub { font-size: 0.78rem; color: var(--muted); margin-top: 4px; }
+
+  /* 날짜 배지 */
+  .day-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    margin-top: 10px; padding: 6px 14px;
+    background: rgba(192,132,252,0.15); border: 1px solid var(--border);
+    border-radius: 20px;
+  }
+  .day-num { font-size: 1.1rem; font-weight: 700; color: var(--accent1); }
+  .day-label { font-size: 0.72rem; color: var(--muted); }
+  .start-date-text { font-size: 0.68rem; color: var(--muted); margin-top: 6px; }
+
+  .nav {
+    display: flex; background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .nav button {
+    flex: 1; padding: 11px 2px; background: none; border: none;
+    color: var(--muted); font-size: 0.68rem; font-family: inherit;
+    cursor: pointer; transition: all 0.2s; border-bottom: 2px solid transparent;
+  }
+  .nav button.active { color: var(--accent1); border-bottom-color: var(--accent1); font-weight: 700; }
+
+  .page { display: none; padding: 16px; }
+  .page.active { display: block; }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 16px; margin-bottom: 12px;
+  }
+  .card-title {
+    font-size: 0.9rem; font-weight: 700; color: var(--accent1);
+    margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+  }
+
+  /* 시작일 설정 */
+  .setup-box {
+    background: rgba(192,132,252,0.08); border: 1px solid var(--accent1);
+    border-radius: 16px; padding: 20px; margin-bottom: 12px; text-align: center;
+  }
+  .setup-box h2 { font-size: 1rem; color: var(--accent2); margin-bottom: 6px; }
+  .setup-box p { font-size: 0.8rem; color: var(--muted); margin-bottom: 16px; line-height: 1.6; }
+  .date-input {
+    background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 14px; color: var(--text);
+    font-family: inherit; font-size: 0.9rem; outline: none;
+    width: 100%; margin-bottom: 10px;
+    color-scheme: dark;
+  }
+  .date-input:focus { border-color: var(--accent1); }
+  .start-btn {
+    width: 100%; padding: 12px; border: none; border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent3), var(--accent1));
+    color: white; font-weight: 700; font-family: inherit; font-size: 0.9rem; cursor: pointer;
+  }
+
+  /* 달력 */
+  .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .cal-title { font-size: 0.9rem; font-weight: 700; }
+  .cal-nav { background: none; border: 1px solid var(--border); color: var(--muted); border-radius: 8px; padding: 4px 10px; cursor: pointer; font-size: 0.8rem; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+  .cal-day-label { text-align: center; font-size: 0.65rem; color: var(--muted); padding: 4px 0; }
+  .cal-cell {
+    aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+    border-radius: 8px; font-size: 0.75rem; cursor: default; position: relative;
+  }
+  .cal-cell.empty { }
+  .cal-cell.past { color: var(--muted); }
+  .cal-cell.today { background: var(--accent1); color: #0f0a1e; font-weight: 700; }
+  .cal-cell.start-day { background: rgba(192,132,252,0.3); color: var(--accent2); font-weight: 700; border: 1px solid var(--accent1); }
+  .cal-cell.plan-day { background: rgba(129,140,248,0.15); color: var(--text); }
+  .cal-cell.done-day { background: rgba(134,239,172,0.2); color: var(--success); }
+  .cal-cell.future { color: rgba(255,255,255,0.3); }
+  .cal-dot { position: absolute; bottom: 2px; width: 4px; height: 4px; border-radius: 50%; background: var(--accent1); }
+  .cal-legend { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+  .legend-item { display: flex; align-items: center; gap: 4px; font-size: 0.65rem; color: var(--muted); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+  /* 재시작 버튼 */
+  .restart-area { margin-top: 8px; }
+  .restart-btn {
+    width: 100%; padding: 11px; border: 1px solid rgba(248,113,113,0.4);
+    border-radius: 12px; background: rgba(248,113,113,0.08);
+    color: #f87171; font-family: inherit; font-size: 0.85rem;
+    font-weight: 700; cursor: pointer;
+  }
+  .restart-confirm {
+    display: none; margin-top: 8px; padding: 14px;
+    background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3);
+    border-radius: 12px; text-align: center;
+  }
+  .restart-confirm p { font-size: 0.82rem; color: var(--muted); margin-bottom: 12px; line-height: 1.6; }
+  .restart-confirm-btns { display: flex; gap: 8px; }
+  .btn-cancel { flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: 10px; background: none; color: var(--muted); font-family: inherit; cursor: pointer; }
+  .btn-confirm { flex: 1; padding: 10px; border: none; border-radius: 10px; background: #f87171; color: white; font-weight: 700; font-family: inherit; cursor: pointer; }
+
+  /* 진행 */
+  .progress-bar { height: 6px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden; margin-top: 8px; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent3), var(--accent1)); border-radius: 3px; transition: width 0.4s ease; }
+  .progress-text { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+
+  /* 체크리스트 */
+  .checklist { display: flex; flex-direction: column; gap: 8px; }
+  .check-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 10px;
+    background: rgba(255,255,255,0.03); border: 1px solid transparent;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .check-item.done { background: rgba(134,239,172,0.08); border-color: rgba(134,239,172,0.2); }
+  .check-item.done .check-text { text-decoration: line-through; color: var(--muted); }
+  .checkbox {
+    width: 20px; height: 20px; border-radius: 6px;
+    border: 2px solid var(--border); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; transition: all 0.2s;
+  }
+  .check-item.done .checkbox { background: var(--success); border-color: var(--success); }
+  .check-text { font-size: 0.82rem; line-height: 1.4; }
+  .check-category { font-size: 0.65rem; color: var(--accent3); margin-top: 2px; }
+
+  /* 주차 선택 */
+  .week-selector { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .week-btn {
+    padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border);
+    background: var(--card); color: var(--muted); font-size: 0.75rem;
+    font-family: inherit; cursor: pointer; transition: all 0.2s;
+  }
+  .week-btn.active { background: var(--accent1); color: #0f0a1e; font-weight: 700; border-color: var(--accent1); }
+  .week-btn.current-week { border-color: var(--accent3); color: var(--accent3); }
+
+  /* 타임라인 */
+  .timeline { position: relative; padding-left: 20px; }
+  .timeline::before { content: ''; position: absolute; left: 6px; top: 0; bottom: 0; width: 1px; background: var(--border); }
+  .tl-item { position: relative; margin-bottom: 16px; }
+  .tl-dot { position: absolute; left: -17px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent1); border: 2px solid var(--bg); }
+  .tl-week { font-size: 0.7rem; color: var(--accent3); font-weight: 700; margin-bottom: 4px; }
+  .tl-title { font-size: 0.85rem; font-weight: 700; margin-bottom: 4px; }
+  .tl-body { font-size: 0.78rem; color: var(--muted); line-height: 1.6; }
+  .tl-weight { display: inline-block; margin-top: 6px; padding: 3px 10px; background: rgba(192,132,252,0.15); border-radius: 20px; font-size: 0.72rem; color: var(--accent2); }
+  .tl-date { font-size: 0.68rem; color: rgba(129,140,248,0.7); margin-top: 3px; }
+
+  /* 몸무게 */
+  .weight-input-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .weight-input { flex: 1; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 10px; padding: 10px; color: var(--text); font-family: inherit; font-size: 0.9rem; outline: none; }
+  .weight-input:focus { border-color: var(--accent1); }
+  .add-btn { padding: 10px 16px; background: var(--accent1); border: none; border-radius: 10px; color: #0f0a1e; font-weight: 700; font-family: inherit; cursor: pointer; }
+  .weight-log { display: flex; flex-direction: column; gap: 6px; }
+  .weight-entry { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: rgba(255,255,255,0.03); border-radius: 8px; }
+  .weight-date { font-size: 0.75rem; color: var(--muted); }
+  .weight-val { font-size: 0.9rem; font-weight: 700; color: var(--accent2); }
+  .weight-diff { font-size: 0.72rem; }
+  .weight-diff.down { color: var(--success); }
+  .weight-diff.up { color: #f87171; }
+
+  /* 일기 */
+  .diary-input { width: 100%; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 12px; padding: 12px; color: var(--text); font-family: inherit; font-size: 0.85rem; resize: none; outline: none; line-height: 1.6; }
+  .diary-input::placeholder { color: var(--muted); }
+  .diary-input:focus { border-color: var(--accent1); }
+  .save-btn { width: 100%; padding: 12px; background: linear-gradient(135deg, var(--accent3), var(--accent1)); border: none; border-radius: 12px; color: white; font-weight: 700; font-family: inherit; font-size: 0.9rem; cursor: pointer; margin-top: 10px; }
+  .diary-entry { padding: 10px 12px; background: rgba(255,255,255,0.03); border-radius: 10px; margin-bottom: 8px; }
+  .diary-date { font-size: 0.7rem; color: var(--accent3); margin-bottom: 4px; }
+  .diary-text { font-size: 0.82rem; line-height: 1.5; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div style="font-size:1rem;letter-spacing:4px;margin-bottom:6px">✦ ✦ ✦</div>
+  <h1>나의 회복 플랜 🌸</h1>
+  <div class="header-sub">오늘도 조금씩, 충분히 잘하고 있어요</div>
+  <div id="day-badge-area"></div>
+</div>
+
+<div class="nav">
+  <button class="active" onclick="showPage('today',this)">오늘</button>
+  <button onclick="showPage('calendar',this)">달력</button>
+  <button onclick="showPage('plan',this)">주차 계획</button>
+  <button onclick="showPage('timeline',this)">변화 예측</button>
+  <button onclick="showPage('weight',this)">몸무게</button>
+  <button onclick="showPage('diary',this)">일기</button>
+</div>
+
+<!-- 오늘 -->
+<div id="today" class="page active">
+  <div id="setup-area"></div>
+  <div id="today-main" style="display:none">
+    <div class="card">
+      <div class="card-title">📅 오늘의 체크리스트</div>
+      <div id="today-progress" class="progress-text"></div>
+      <div class="progress-bar"><div id="today-bar" class="progress-fill" style="width:0%"></div></div>
+    </div>
+    <div class="card">
+      <div class="checklist" id="daily-checks"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">💜 오늘의 응원</div>
+      <div id="daily-msg" style="font-size:0.85rem;line-height:1.7;color:var(--muted)"></div>
+    </div>
+    <div class="card restart-area">
+      <div class="card-title">🔄 플랜 재시작</div>
+      <div style="font-size:0.78rem;color:var(--muted);margin-bottom:10px;line-height:1.6">
+        다시 시작하고 싶을 때 언제든 눌러요.<br>포기가 아니라 <b style="color:var(--accent2)">다시 선택하는 것</b>이에요 💜
+      </div>
+      <button class="restart-btn" onclick="showRestartConfirm()">🌱 1일차부터 다시 시작하기</button>
+      <div class="restart-confirm" id="restart-confirm">
+        <p>시작 날짜를 오늘로 바꾸고<br>1일차부터 다시 시작할게요.<br>일기와 몸무게 기록은 그대로 남아요.</p>
+        <div style="margin-bottom:10px">
+          <label style="font-size:0.78rem;color:var(--muted);display:block;margin-bottom:6px">시작 날짜 직접 설정 (선택)</label>
+          <input type="date" id="restart-date-input" class="date-input" style="margin-bottom:0">
+        </div>
+        <div class="restart-confirm-btns">
+          <button class="btn-cancel" onclick="hideRestartConfirm()">취소</button>
+          <button class="btn-confirm" onclick="doRestart()">다시 시작!</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 달력 -->
+<div id="calendar" class="page">
+  <div class="card">
+    <div class="cal-header">
+      <button class="cal-nav" onclick="changeCalMonth(-1)">◀</button>
+      <div class="cal-title" id="cal-title"></div>
+      <button class="cal-nav" onclick="changeCalMonth(1)">▶</button>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <div class="cal-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--accent1)"></div> 오늘</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(192,132,252,0.5);border:1px solid var(--accent1)"></div> 시작일</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(129,140,248,0.3)"></div> 플랜 기간</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(134,239,172,0.3)"></div> 체크 완료일</div>
+    </div>
+  </div>
+  <div class="card" id="cal-day-detail" style="display:none">
+    <div class="card-title" id="cal-detail-title"></div>
+    <div id="cal-detail-body" style="font-size:0.82rem;color:var(--muted);line-height:1.7"></div>
+  </div>
+</div>
+
+<!-- 주차별 계획 -->
+<div id="plan" class="page">
+  <div class="week-selector" id="week-selector"></div>
+  <div id="week-content"></div>
+</div>
+
+<!-- 변화 예측 -->
+<div id="timeline" class="page">
+  <div class="card">
+    <div class="card-title">🌱 앞으로의 변화 예측</div>
+    <div style="font-size:0.75rem;color:var(--muted);margin-bottom:12px">시작일 기준 예상 날짜예요</div>
+    <div class="timeline" id="timeline-content"></div>
+  </div>
+</div>
+
+<!-- 몸무게 -->
+<div id="weight" class="page">
+  <div class="card">
+    <div class="card-title">⚖️ 몸무게 기록</div>
+    <div class="weight-input-row">
+      <input class="weight-input" type="number" id="weight-in" placeholder="오늘 몸무게 (kg)" step="0.1">
+      <button class="add-btn" onclick="addWeight()">기록</button>
+    </div>
+    <div class="weight-log" id="weight-log"></div>
+  </div>
+</div>
+
+<!-- 일기 -->
+<div id="diary" class="page">
+  <div class="card">
+    <div class="card-title">📝 오늘의 일기</div>
+    <textarea class="diary-input" id="diary-input" rows="5" placeholder="오늘 어땠나요? 작은 것이라도 써봐요 🌸"></textarea>
+    <button class="save-btn" onclick="saveDiary()">저장하기</button>
+  </div>
+  <div class="card">
+    <div class="card-title">📖 지난 일기</div>
+    <div id="diary-entries"></div>
+  </div>
+</div>
+
+<script>
+// ===== 데이터 =====
+const weekPlans = {
+  1: { title:"1주차 — 위생 루틴의 씨앗", subtitle:"가장 작은 것부터 시작해요", tasks:[
+    {cat:"구강", text:"아무 때나 양치 1회"},
+    {cat:"세안", text:"물로 얼굴 적시기 (세안 아니어도 됨)"},
+    {cat:"헤어", text:"린스/트리트먼트 바르고 손가락으로 끝부터 엉킴 풀기"},
+    {cat:"수분", text:"물 한 컵 마시기"},
+    {cat:"운동", text:"집 안 10분 걷기"}
+  ]},
+  2: { title:"2주차 — 루틴 자리잡기", subtitle:"한 번 해봤으니 두 번도 돼요", tasks:[
+    {cat:"구강", text:"아침 또는 자기 전 양치 1회 (시간 고정)"},
+    {cat:"세안", text:"저녁에 폼클렌저로 세안 1회"},
+    {cat:"보습", text:"세안 후 수분크림 바르기"},
+    {cat:"헤어", text:"샴푸 후 린스 필수 / 이틀에 한 번 샤워 목표"},
+    {cat:"운동", text:"집 안 10~15분 걷기 또는 스트레칭"},
+    {cat:"수분", text:"물 하루 500ml 이상"}
+  ]},
+  3: { title:"3주차 — 피부 관리 시작", subtitle:"조금씩 더해가요", tasks:[
+    {cat:"구강", text:"아침 + 저녁 양치 2회"},
+    {cat:"세안", text:"아침 물 세안 + 저녁 폼클렌저 세안"},
+    {cat:"보습", text:"수분크림 아침저녁"},
+    {cat:"헤어", text:"드라이기로 반만 말리고 자기"},
+    {cat:"운동", text:"20분 산책 (천천히, 다리 아프면 멈추기)"},
+    {cat:"운동", text:"스쿼트 10개 × 2세트"},
+    {cat:"수분", text:"물 하루 1L 목표"}
+  ]},
+  4: { title:"4주차 — 루틴 완성", subtitle:"벌써 한 달! 정말 대단해요 🎉", tasks:[
+    {cat:"구강", text:"아침 + 저녁 양치 2회"},
+    {cat:"세안", text:"아침 물 세안 + 저녁 폼클렌저 세안"},
+    {cat:"보습", text:"수분크림 아침저녁"},
+    {cat:"헤어", text:"단백질 트리트먼트 1회 (주 1회)"},
+    {cat:"운동", text:"30분 산책"},
+    {cat:"운동", text:"스쿼트 10개 × 2세트 + 플랭크 20초"},
+    {cat:"수분", text:"물 하루 1.2L 목표"}
+  ]},
+  5: { title:"5주차 — 체력 키우기", subtitle:"몸이 조금씩 달라지고 있어요", tasks:[
+    {cat:"피부", text:"아침 루틴에 선크림 추가"},
+    {cat:"피부", text:"립밤 바르기 (주 2회)"},
+    {cat:"헤어", text:"단백질 트리트먼트 1회"},
+    {cat:"운동", text:"30~40분 산책"},
+    {cat:"운동", text:"스쿼트 15개 × 3세트"},
+    {cat:"운동", text:"플랭크 20초 × 2세트"},
+    {cat:"식사", text:"한 끼에 단백질 포함 (달걀, 두부 등)"},
+    {cat:"수분", text:"물 하루 1.5L 목표"}
+  ]},
+  6: { title:"6주차 — 변화를 느끼는 시기", subtitle:"체중이 슬슬 줄어들기 시작해요", tasks:[
+    {cat:"피부", text:"선크림 매일"},
+    {cat:"헤어", text:"단백질 트리트먼트 1회"},
+    {cat:"운동", text:"40분 산책"},
+    {cat:"운동", text:"스쿼트 15개 × 3세트 + 런지 10개 × 2세트"},
+    {cat:"운동", text:"플랭크 30초"},
+    {cat:"식사", text:"매 끼니 단백질 포함"},
+    {cat:"수분", text:"물 하루 1.5L"}
+  ]},
+  7: { title:"7주차 — 메이크업 입문 🌸", subtitle:"외관도 가꾸기 시작해요", tasks:[
+    {cat:"메이크업", text:"쿠션 파운데이션 구매 후 발라보기"},
+    {cat:"메이크업", text:"눈썹 펜슬로 눈썹 그려보기"},
+    {cat:"피부", text:"선크림 매일"},
+    {cat:"헤어", text:"미용실 방문해서 끝부분 정리"},
+    {cat:"운동", text:"40분 산책 + 홈트 20분"},
+    {cat:"운동", text:"런지 10개 × 2세트 추가"}
+  ]},
+  8: { title:"8주차 — 2개월 완성! 🎉", subtitle:"정말 많이 달라졌을 거예요", tasks:[
+    {cat:"메이크업", text:"쿠션 + 눈썹 + 틴트 (혈색 살리기)"},
+    {cat:"피부", text:"선크림 매일"},
+    {cat:"헤어", text:"단백질 트리트먼트 주 1회"},
+    {cat:"운동", text:"월/수/금: 산책 40분 + 근력 루틴"},
+    {cat:"운동", text:"화/목: 가벼운 산책 20분"},
+    {cat:"운동", text:"플랭크 40초 × 2세트"},
+    {cat:"식사", text:"매 끼니 단백질 + 채소 포함"}
+  ]},
+  9: { title:"9~10주차 — 본격 변화", subtitle:"몸이 눈에 띄게 달라지는 시기", tasks:[
+    {cat:"메이크업", text:"아이라인 도전해보기"},
+    {cat:"피부", text:"피부과 방문 고려"},
+    {cat:"헤어", text:"땋은 머리 스타일 도전"},
+    {cat:"운동", text:"산책 40분 + 홈트 30분"},
+    {cat:"운동", text:"스쿼트 20개 × 3세트"},
+    {cat:"운동", text:"필라테스 or 요가 등록 고려"},
+    {cat:"식사", text:"물 하루 1.5L + 단백질 매끼"}
+  ]},
+  10: { title:"11~12주차 — 3개월 완성! 🎊", subtitle:"거울 보는 게 즐거워지는 나", tasks:[
+    {cat:"메이크업", text:"풀 베이스 메이크업 루틴 완성"},
+    {cat:"헤어", text:"원하는 헤어스타일 도전"},
+    {cat:"운동", text:"주 5일 운동 루틴 유지"},
+    {cat:"운동", text:"필라테스 or 요가 주 1~2회"},
+    {cat:"목표", text:"4~5kg 감량 달성 확인"},
+    {cat:"목표", text:"다음 3개월 새 목표 세우기"}
+  ]}
+};
+
+const timelineData = [
+  { weekOffset:1, week:"1주 후", title:"첫 변화", body:"머리 엉킴 해결됨\n입냄새 줄어듦\n피부에 수분감 생기기 시작", weight:"체중 변화 없음 (정상)" },
+  { weekOffset:2, week:"2주 후", title:"루틴 자리잡기", body:"세안 루틴 습관화\n피부 결 맑아지기 시작\n두피 기름기 줄어듦", weight:"64kg 유지 or 0.5kg ↓" },
+  { weekOffset:4, week:"4주 후 (1개월)", title:"몸이 달라지기 시작", body:"산책이 덜 힘들어짐\n피부 확실히 맑아짐\n머릿결 부드러워짐", weight:"약 63~63.5kg" },
+  { weekOffset:6, week:"6주 후", title:"체형 변화 시작", body:"허벅지·복부 약간 단단해짐\n걷기 40분도 가능해짐\n옷핏이 조금 달라진 느낌", weight:"약 62.5~63kg" },
+  { weekOffset:8, week:"8주 후 (2개월)", title:"외관 변화 확실히!", body:"얼굴 라인 갸름해짐\n메이크업으로 인상 달라짐\n머릿결 눈에 띄게 좋아짐", weight:"약 61~62kg" },
+  { weekOffset:12, week:"12주 후 (3개월)", title:"나 달라졌다!", body:"체형 라인 확실히 변화\n땋은 머리 스타일 가능\n풀 메이크업 가능", weight:"약 59~60kg" },
+  { weekOffset:26, week:"6개월 후", title:"목표에 가까워진 나 🌸", body:"원하는 헤어스타일 자유자재\n메이크업 완전히 익숙해짐\n체력: 운동이 즐거워짐", weight:"약 52~54kg" },
+  { weekOffset:999, week:"최종 목표", title:"목표 달성! 🎉", body:"건강하고 예쁜 나\n꾸준히 유지하는 루틴", weight:"50kg 도달" }
+];
+
+const messages = [
+  "오늘도 여기 들어온 것만으로도 충분해요. 작은 것 하나만 해봐요 🌸",
+  "어제보다 조금 나아지면 그걸로 완벽한 하루예요 💜",
+  "지금 이 순간도 회복 중이에요. 정말 잘하고 있어요 ✨",
+  "몸을 돌보는 것은 자신을 사랑하는 가장 작은 시작이에요 🌱",
+  "급하지 않아도 돼요. 천천히, 하지만 확실하게 나아가고 있어요 🌙",
+  "오늘 한 가지만 해도 성공이에요. 뭐든 괜찮아요 💫",
+  "다시 시작한 오늘, 그게 이미 용기예요 🌈",
+];
+
+// ===== 상태 =====
+let todayChecks = {};
+let diaryEntries = [];
+let weightLog = [];
+let calYear, calMonth;
+let currentWeek = 1;
+
+function load() {
+  todayChecks = JSON.parse(localStorage.getItem('todayChecks') || '{}');
+  diaryEntries = JSON.parse(localStorage.getItem('diaryEntries') || '[]');
+  weightLog = JSON.parse(localStorage.getItem('weightLog') || '[]');
+  const today = new Date().toDateString();
+  if (localStorage.getItem('lastDate') !== today) {
+    // 하루 지나면 체크 초기화
+    todayChecks = {};
+    localStorage.setItem('todayChecks', '{}');
+    localStorage.setItem('lastDate', today);
+  }
+}
+function saveChecks() { localStorage.setItem('todayChecks', JSON.stringify(todayChecks)); }
+function saveDiaryData() { localStorage.setItem('diaryEntries', JSON.stringify(diaryEntries)); }
+function saveWeightData() { localStorage.setItem('weightLog', JSON.stringify(weightLog)); }
+
+// ===== 시작일 =====
+function getStartDate() {
+  const s = localStorage.getItem('startDate');
+  return s ? new Date(s) : null;
+}
+function setStartDate(d) {
+  localStorage.setItem('startDate', d.toISOString());
+}
+function getDayNumber() {
+  const s = getStartDate();
+  if (!s) return null;
+  const diff = Math.floor((new Date() - s) / (1000*60*60*24));
+  return diff + 1;
+}
+function getWeekNumber() {
+  const d = getDayNumber();
+  if (!d) return 1;
+  return Math.min(Math.ceil(d / 7), 10);
+}
+
+// ===== 헤더 배지 =====
+function renderBadge() {
+  const area = document.getElementById('day-badge-area');
+  const s = getStartDate();
+  if (!s) { area.innerHTML = ''; return; }
+  const day = getDayNumber();
+  const week = getWeekNumber();
+  const startStr = s.toLocaleDateString('ko-KR', {year:'numeric',month:'long',day:'numeric'});
+  area.innerHTML = `
+    <div class="day-badge">
+      <span class="day-num">${day}일째</span>
+      <span class="day-label">/ ${week}주차 진행 중</span>
+    </div>
+    <div class="start-date-text">시작일: ${startStr}</div>`;
+}
+
+// ===== 오늘 =====
+function renderToday() {
+  const s = getStartDate();
+  const setupArea = document.getElementById('setup-area');
+  const mainArea = document.getElementById('today-main');
+
+  if (!s) {
+    mainArea.style.display = 'none';
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    setupArea.innerHTML = `
+      <div class="setup-box">
+        <h2>🌸 플랜 시작하기</h2>
+        <p>시작 날짜를 설정하면<br>오늘이 몇 일째인지, 몇 주차인지<br>자동으로 알려드려요!</p>
+        <input type="date" id="start-date-input" class="date-input" value="${todayStr}">
+        <button class="start-btn" onclick="confirmStart()">✨ 지금 시작하기!</button>
+      </div>`;
+    return;
+  }
+
+  setupArea.innerHTML = '';
+  mainArea.style.display = 'block';
+
+  const week = getWeekNumber();
+  const plan = weekPlans[week];
+  const container = document.getElementById('daily-checks');
+  container.innerHTML = '';
+
+  plan.tasks.forEach((task, i) => {
+    const id = `task_${i}`;
+    const done = todayChecks[id];
+    const div = document.createElement('div');
+    div.className = 'check-item' + (done ? ' done' : '');
+    div.innerHTML = `
+      <div class="checkbox">${done ? '✓' : ''}</div>
+      <div>
+        <div class="check-text">${task.text}</div>
+        <div class="check-category">${task.cat}</div>
+      </div>`;
+    div.onclick = () => {
+      todayChecks[id] = !todayChecks[id];
+      // 완료된 날 기록
+      const todayKey = new Date().toISOString().split('T')[0];
+      const doneLog = JSON.parse(localStorage.getItem('doneDays') || '{}');
+      const total = plan.tasks.length;
+      const doneCount = Object.values(todayChecks).filter(Boolean).length + (todayChecks[id] ? 0 : -1);
+      if (doneCount >= Math.ceil(total * 0.5)) {
+        doneLog[todayKey] = true;
+      } else {
+        delete doneLog[todayKey];
+      }
+      localStorage.setItem('doneDays', JSON.stringify(doneLog));
+      saveChecks();
+      renderToday();
+    };
+    container.appendChild(div);
+  });
+
+  const total = plan.tasks.length;
+  const done = Object.values(todayChecks).filter(Boolean).length;
+  const pct = total ? Math.round(done/total*100) : 0;
+  document.getElementById('today-progress').textContent = `${done} / ${total} 완료 (${pct}%)`;
+  document.getElementById('today-bar').style.width = pct + '%';
+
+  const idx = (getDayNumber() || 1) % messages.length;
+  document.getElementById('daily-msg').textContent = messages[idx];
+
+  // restart date 기본값
+  const rInput = document.getElementById('restart-date-input');
+  if (rInput) rInput.value = new Date().toISOString().split('T')[0];
+}
+
+function confirmStart() {
+  const val = document.getElementById('start-date-input').value;
+  if (!val) return;
+  setStartDate(new Date(val + 'T00:00:00'));
+  renderBadge();
+  renderToday();
+  renderTimeline();
+}
+
+// ===== 재시작 =====
+function showRestartConfirm() {
+  document.getElementById('restart-confirm').style.display = 'block';
+  const rInput = document.getElementById('restart-date-input');
+  rInput.value = new Date().toISOString().split('T')[0];
+}
+function hideRestartConfirm() {
+  document.getElementById('restart-confirm').style.display = 'none';
+}
+function doRestart() {
+  const val = document.getElementById('restart-date-input').value;
+  const d = val ? new Date(val + 'T00:00:00') : new Date();
+  setStartDate(d);
+  todayChecks = {};
+  saveChecks();
+  localStorage.setItem('lastDate', new Date().toDateString());
+  hideRestartConfirm();
+  renderBadge();
+  renderToday();
+  renderTimeline();
+  renderCalendar();
+}
+
+// ===== 달력 =====
+function initCalendar() {
+  const now = new Date();
+  calYear = now.getFullYear();
+  calMonth = now.getMonth();
+  renderCalendar();
+}
+function changeCalMonth(dir) {
+  calMonth += dir;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  renderCalendar();
+}
+function renderCalendar() {
+  const startDate = getStartDate();
+  const doneDays = JSON.parse(localStorage.getItem('doneDays') || '{}');
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+
+  // plan end date (12 weeks from start)
+  let planEnd = null;
+  if (startDate) {
+    planEnd = new Date(startDate);
+    planEnd.setDate(planEnd.getDate() + 84);
+  }
+
+  document.getElementById('cal-title').textContent =
+    `${calYear}년 ${calMonth+1}월`;
+
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+  ['일','월','화','수','목','금','토'].forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'cal-day-label';
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+
+  for (let i = 0; i < firstDay; i++) {
+    const el = document.createElement('div'); el.className = 'cal-cell empty'; grid.appendChild(el);
+  }
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const cellDate = new Date(calYear, calMonth, d);
+    const el = document.createElement('div');
+    el.className = 'cal-cell';
+    el.textContent = d;
+
+    const isToday = dateStr === todayStr;
+    const isStart = startDate && cellDate.toDateString() === startDate.toDateString();
+    const isPlanDay = startDate && planEnd && cellDate >= startDate && cellDate <= planEnd;
+    const isDone = doneDays[dateStr];
+    const isPast = cellDate < today && !isToday;
+    const isFuture = cellDate > today;
+
+    if (isToday) el.className += ' today';
+    else if (isStart) el.className += ' start-day';
+    else if (isDone) el.className += ' done-day';
+    else if (isPlanDay && isPast) el.className += ' past';
+    else if (isPlanDay && isFuture) el.className += ' plan-day future';
+    else if (isPlanDay) el.className += ' plan-day';
+    else if (isFuture) el.className += ' future';
+    else el.className += ' past';
+
+    if (startDate && isPlanDay) {
+      const dayNum = Math.floor((cellDate - startDate) / (1000*60*60*24)) + 1;
+      el.title = `${dayNum}일째`;
+      el.onclick = () => showCalDetail(dateStr, dayNum, isDone);
+    }
+
+    grid.appendChild(el);
+  }
+}
+
+function showCalDetail(dateStr, dayNum, isDone) {
+  const detail = document.getElementById('cal-day-detail');
+  const title = document.getElementById('cal-detail-title');
+  const body = document.getElementById('cal-detail-body');
+  detail.style.display = 'block';
+  const week = Math.ceil(dayNum / 7);
+  const plan = weekPlans[Math.min(week, 10)];
+  title.textContent = `📅 ${dateStr} — ${dayNum}일째 (${week}주차)`;
+  body.innerHTML = `<b style="color:var(--accent2)">${plan.title}</b><br><br>` +
+    plan.tasks.map(t => `✦ [${t.cat}] ${t.text}`).join('<br>') +
+    (isDone ? '<br><br><span style="color:var(--success)">✓ 이날 루틴 완료했어요!</span>' : '');
+  detail.scrollIntoView({behavior:'smooth'});
+}
+
+// ===== 주차별 계획 =====
+function renderPlan() {
+  const w = getWeekNumber();
+  const sel = document.getElementById('week-selector');
+  sel.innerHTML = '';
+  for (let i = 1; i <= 10; i++) {
+    const btn = document.createElement('button');
+    const isCurrent = i === w;
+    btn.className = 'week-btn' + (i === currentWeek ? ' active' : '') + (isCurrent ? ' current-week' : '');
+    btn.textContent = i < 9 ? `${i}주` : i === 9 ? '9~10주' : '11~12주';
+    if (isCurrent && i === currentWeek) btn.textContent += ' ★';
+    const idx = i;
+    btn.onclick = () => { currentWeek = idx; renderPlan(); };
+    sel.appendChild(btn);
+  }
+  const plan = weekPlans[currentWeek];
+  document.getElementById('week-content').innerHTML = `
+    <div class="card">
+      <div class="card-title">📋 ${plan.title}</div>
+      <div style="font-size:0.78rem;color:var(--muted);margin-bottom:12px">${plan.subtitle}</div>
+      <div class="checklist">
+        ${plan.tasks.map(t => `
+          <div class="check-item">
+            <div class="checkbox" style="border-color:var(--accent3)"></div>
+            <div>
+              <div class="check-text">${t.text}</div>
+              <div class="check-category">${t.cat}</div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+// ===== 타임라인 =====
+function renderTimeline() {
+  const start = getStartDate();
+  const container = document.getElementById('timeline-content');
+  container.innerHTML = timelineData.map(item => {
+    let dateStr = '';
+    if (start && item.weekOffset < 999) {
+      const d = new Date(start);
+      d.setDate(d.getDate() + item.weekOffset * 7);
+      dateStr = `<div class="tl-date">📆 예상 날짜: ${d.toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'})}</div>`;
+    }
+    return `<div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-week">${item.week}</div>
+      <div class="tl-title">${item.title}</div>
+      <div class="tl-body">${item.body.replace(/\n/g,'<br>')}</div>
+      <span class="tl-weight">⚖️ ${item.weight}</span>
+      ${dateStr}
+    </div>`;
+  }).join('');
+}
+
+// ===== 몸무게 =====
+function addWeight() {
+  const val = parseFloat(document.getElementById('weight-in').value);
+  if (!val || val < 30 || val > 200) return;
+  const now = new Date();
+  weightLog.unshift({ date: now.toLocaleDateString('ko-KR'), val });
+  saveWeightData();
+  document.getElementById('weight-in').value = '';
+  renderWeight();
+}
+function renderWeight() {
+  const c = document.getElementById('weight-log');
+  if (!weightLog.length) { c.innerHTML = '<div style="font-size:0.82rem;color:var(--muted);text-align:center;padding:20px">아직 기록이 없어요</div>'; return; }
+  c.innerHTML = weightLog.map((e, i) => {
+    const prev = weightLog[i+1];
+    let dHTML = '';
+    if (prev) {
+      const d = (e.val - prev.val).toFixed(1);
+      const cls = d <= 0 ? 'down' : 'up';
+      dHTML = `<span class="weight-diff ${cls}">${d > 0 ? '+' : ''}${d}kg</span>`;
+    }
+    return `<div class="weight-entry">
+      <span class="weight-date">${e.date}</span>
+      <div style="display:flex;align-items:center;gap:8px">${dHTML}<span class="weight-val">${e.val}kg</span></div>
+    </div>`;
+  }).join('');
+}
+
+// ===== 일기 =====
+function saveDiary() {
+  const text = document.getElementById('diary-input').value.trim();
+  if (!text) return;
+  const now = new Date();
+  diaryEntries.unshift({
+    date: now.toLocaleDateString('ko-KR') + ' ' + now.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}),
+    text
+  });
+  saveDiaryData();
+  document.getElementById('diary-input').value = '';
+  renderDiary();
+}
+function renderDiary() {
+  const c = document.getElementById('diary-entries');
+  if (!diaryEntries.length) { c.innerHTML = '<div style="font-size:0.82rem;color:var(--muted);text-align:center;padding:10px">아직 일기가 없어요</div>'; return; }
+  c.innerHTML = diaryEntries.map(e => `
+    <div class="diary-entry">
+      <div class="diary-date">${e.date}</div>
+      <div class="diary-text">${e.text}</div>
+    </div>`).join('');
+}
+
+// ===== 알림 =====
+function scheduleNotif(hour, min, msg) {
+  if (!('Notification' in window)) return;
+  const now = new Date(), target = new Date();
+  target.setHours(hour, min, 0, 0);
+  if (target <= now) target.setDate(target.getDate() + 1);
+  setTimeout(() => {
+    if (Notification.permission === 'granted')
+      new Notification('나의 회복 플랜 🌸', { body: msg });
+    scheduleNotif(hour, min, msg);
+  }, target - now);
+}
+
+// ===== 페이지 전환 =====
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'calendar') renderCalendar();
+  if (id === 'plan') renderPlan();
+}
+
+// ===== 초기화 =====
+load();
+if ('Notification' in window) Notification.requestPermission();
+scheduleNotif(8, 0, '☀️ 좋은 아침! 오늘의 루틴을 시작해볼까요?');
+scheduleNotif(14, 0, '💧 물 마셨나요? 지금 한 잔 마셔요!');
+scheduleNotif(21, 0, '🌙 저녁 루틴 잊지 않으셨죠? 세안하고 양치해요!');
+
+renderBadge();
+renderToday();
+initCalendar();
+renderPlan();
+renderTimeline();
+renderWeight();
+renderDiary();
+</script>
+</body>
+</html>
